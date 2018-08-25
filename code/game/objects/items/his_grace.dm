@@ -2,7 +2,6 @@
 //When awakened, He thirsts for blood and begins ticking a "bloodthirst" counter.
 //The wielder of His Grace is immune to stuns and gradually heals.
 //If the wielder fails to feed His Grace in time, He will devour them and become incredibly aggressive.
-//Leaving His Grace alone for some time will reset His thirst and put Him to sleep.
 //Using His Grace effectively requires extreme speed and care.
 /obj/item/his_grace
 	name = "artistic toolbox"
@@ -71,9 +70,6 @@
 		user.visible_message("<span class='warning'>[user] scrambles out of [src]!</span>", "<span class='notice'>You climb out of [src]!</span>")
 
 /obj/item/his_grace/process()
-	if(!bloodthirst)
-		drowse()
-		return
 	if(bloodthirst < HIS_GRACE_CONSUME_OWNER)
 		adjust_bloodthirst(1 + FLOOR(LAZYLEN(contents) * 0.5, 1)) //Maybe adjust this?
 	else
@@ -96,11 +92,8 @@
 	forceMove(get_turf(src)) //no you can't put His Grace in a locker you just have to deal with Him
 	if(bloodthirst < HIS_GRACE_CONSUME_OWNER)
 		return
-	if(bloodthirst >= HIS_GRACE_FALL_ASLEEP)
-		drowse()
-		return
 	var/list/targets = list()
-	for(var/mob/living/L in oview(2, src))
+	for(var/mob/living/L in oview(7, src))
 		targets += L
 	if(!LAZYLEN(targets))
 		return
@@ -130,21 +123,6 @@
 	playsound(user, 'sound/effects/pope_entry.ogg', 100)
 	icon_state = "his_grace_awakened"
 
-/obj/item/his_grace/proc/drowse() //Good night, Mr. Grace.
-	if(!awakened)
-		return
-	var/turf/T = get_turf(src)
-	T.visible_message("<span class='boldwarning'>[src] slowly stops rattling and falls still, His latch snapping closed.</span>")
-	playsound(loc, 'sound/weapons/batonextend.ogg', 100, 1)
-	name = initial(name)
-	desc = initial(desc)
-	icon_state = initial(icon_state)
-	gender = initial(gender)
-	force = initial(force)
-	force_bonus = initial(force_bonus)
-	awakened = FALSE
-	bloodthirst = 0
-
 /obj/item/his_grace/proc/consume(mob/living/meal) //Here's your dinner, Mr. Grace.
 	if(!meal)
 		return
@@ -166,15 +144,14 @@
 	if(prev_bloodthirst < HIS_GRACE_CONSUME_OWNER)
 		bloodthirst = CLAMP(bloodthirst + amt, HIS_GRACE_SATIATED, HIS_GRACE_CONSUME_OWNER)
 	else
-		bloodthirst = CLAMP(bloodthirst + amt, HIS_GRACE_CONSUME_OWNER, HIS_GRACE_FALL_ASLEEP)
+		bloodthirst = CLAMP(bloodthirst + amt, HIS_GRACE_CONSUME_OWNER)
 	update_stats()
 
 /obj/item/his_grace/proc/update_stats()
 	item_flags &= ~NODROP
 	var/mob/living/master = get_atom_on_turf(src, /mob/living)
 	switch(bloodthirst)
-		if(HIS_GRACE_CONSUME_OWNER to HIS_GRACE_FALL_ASLEEP)
-			if(HIS_GRACE_CONSUME_OWNER > prev_bloodthirst)
+		if(HIS_GRACE_CONSUME_OWNER > prev_bloodthirst)
 				master.visible_message("<span class='userdanger'>[src] enters a frenzy!</span>")
 		if(HIS_GRACE_STARVING to HIS_GRACE_CONSUME_OWNER)
 			item_flags |= NODROP
